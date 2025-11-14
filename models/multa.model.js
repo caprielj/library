@@ -85,11 +85,6 @@ const Multa = sequelize.define('Multa', {
             notNull: {
                 msg: 'El monto es obligatorio'
             },
-            min: {
-                args: 0,
-                msg: 'El monto no puede ser negativo'
-            },
-            // Validar que el monto sea un número válido
             isDecimal: {
                 msg: 'El monto debe ser un número válido'
             }

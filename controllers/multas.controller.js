@@ -1,5 +1,6 @@
 // Controlador de Multas
 const Multa = require('../models/multa.model');
+const Devolucion = require('../models/devolucion.model');
 const Prestamo = require('../models/prestamo.model');
 const Usuario = require('../models/usuario.model');
 
@@ -8,10 +9,16 @@ exports.getAll = async (req, res) => {
     try {
         const multas = await Multa.findAll({
             include: [
-                { model: Prestamo, as: 'prestamo' },
+                {
+                    model: Devolucion,
+                    as: 'devolucion',
+                    include: [
+                        { model: Prestamo, as: 'prestamo' }
+                    ]
+                },
                 { model: Usuario, as: 'usuario' }
             ],
-            order: [['fecha_multa', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
         res.json(multas);
     } catch (error) {
@@ -24,7 +31,13 @@ exports.getById = async (req, res) => {
     try {
         const multa = await Multa.findByPk(req.params.id, {
             include: [
-                { model: Prestamo, as: 'prestamo' },
+                {
+                    model: Devolucion,
+                    as: 'devolucion',
+                    include: [
+                        { model: Prestamo, as: 'prestamo' }
+                    ]
+                },
                 { model: Usuario, as: 'usuario' }
             ]
         });
@@ -42,15 +55,15 @@ exports.getById = async (req, res) => {
 // Crear
 exports.create = async (req, res) => {
     try {
-        const { prestamo_id, usuario_id, monto, motivo, fecha_multa, estado_pago } = req.body;
+        const { devolucion_id, usuario_id, tipo_multa, monto, descripcion } = req.body;
 
         const nuevaMulta = await Multa.create({
-            prestamo_id,
+            devolucion_id,
             usuario_id,
+            tipo_multa: tipo_multa || 'Retraso',  // Por defecto 'Retraso'
             monto,
-            motivo,
-            fecha_multa,
-            estado_pago
+            descripcion,
+            pagada: false  // Por defecto no pagada
         });
 
         res.status(201).json(nuevaMulta);

@@ -1,7 +1,3 @@
-// =====================================================
-// MODELO: ROLES
-// Archivo: models/rol.model.js
-// =====================================================
 // Define la estructura de la tabla Roles en la base de datos
 // Un Rol agrupa permisos y determina qué puede hacer un usuario
 
@@ -9,7 +5,7 @@
 const { DataTypes } = require('sequelize');
 
 // Importar la conexión a la base de datos
-const { sequelize } = require('../config/database');
+const { sequelize } = require('../db/db');
 
 /**
  * Modelo Rol

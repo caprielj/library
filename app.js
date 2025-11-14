@@ -1,7 +1,7 @@
-// =====================================================
+
 // SERVIDOR PRINCIPAL - PROYECTO BIBLIOTECA API
 // Archivo: app.js
-// =====================================================
+
 // Este es el punto de entrada de la aplicación
 // Configura Express y todos los middlewares necesarios
 

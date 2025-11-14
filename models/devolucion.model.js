@@ -80,19 +80,14 @@ const Devolucion = sequelize.define('Devolucion', {
         }
     },
     
-    // CAMPO: dias_retraso 
+    // CAMPO: dias_retraso
     // Cantidad de días de retraso (calculado automáticamente)
     dias_retraso: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,  // Cambiado a true para que el hook lo pueda calcular
         defaultValue: 0,
-        comment: 'Días de retraso calculados',
-        validate: {
-            min: {
-                args: 0,
-                msg: 'Los días de retraso no pueden ser negativos'
-            }
-        }
+        comment: 'Días de retraso calculados (calculado automáticamente por hook)'
+        // Sin validación - el hook garantiza que siempre sea >= 0
     },
     
     // CAMPO: condicion_devolucion 
@@ -196,26 +191,41 @@ Usuario.hasMany(Devolucion, {
 // HOOKS (Eventos automáticos)
 
 /**
- * Hook: Antes de crear una devolución
+ * Hook: Antes de validar una devolución (se ejecuta ANTES de las validaciones)
  * Calcula automáticamente los días de retraso
  */
-Devolucion.beforeCreate(async (devolucion) => {
-    // Obtener el préstamo relacionado
-    const prestamo = await Prestamo.findByPk(devolucion.prestamo_id);
-    
-    if (prestamo) {
-        // Calcular días de retraso
-        const fechaDevolucionReal = new Date(devolucion.fecha_devolucion_real);
-        const fechaDevolucionEstimada = new Date(prestamo.fecha_devolucion_estimada);
-        
-        if (fechaDevolucionReal > fechaDevolucionEstimada) {
+Devolucion.beforeValidate(async (devolucion) => {
+    // Solo calcular si es una nueva devolución y tiene prestamo_id
+    if (devolucion.isNewRecord && devolucion.prestamo_id) {
+        // Obtener el préstamo relacionado
+        const prestamo = await Prestamo.findByPk(devolucion.prestamo_id);
+
+        if (prestamo) {
+            // Convertir fechas a strings YYYY-MM-DD si no lo están ya
+            const fechaRealStr = typeof devolucion.fecha_devolucion_real === 'string'
+                ? devolucion.fecha_devolucion_real
+                : devolucion.fecha_devolucion_real.toISOString().split('T')[0];
+
+            const fechaEstimadaStr = typeof prestamo.fecha_devolucion_estimada === 'string'
+                ? prestamo.fecha_devolucion_estimada
+                : prestamo.fecha_devolucion_estimada.toISOString().split('T')[0];
+
+            // Calcular días de retraso usando solo las fechas sin tiempo
+            const fechaDevolucionReal = new Date(fechaRealStr);
+            const fechaDevolucionEstimada = new Date(fechaEstimadaStr);
+
+            // Calcular diferencia en días
             const diferenciaMilisegundos = fechaDevolucionReal - fechaDevolucionEstimada;
-            devolucion.dias_retraso = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+            const diasDiferencia = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+            // Si la diferencia es positiva, hay retraso; si no, es 0
+            devolucion.dias_retraso = Math.max(0, diasDiferencia);
+
+            console.log(`📚 Calculando devolución: fecha_real=${fechaRealStr}, fecha_estimada=${fechaEstimadaStr}, días_retraso=${devolucion.dias_retraso}`);
         } else {
+            // Si no encuentra el préstamo, establecer 0
             devolucion.dias_retraso = 0;
         }
-        
-        console.log(`📚 Devolución registrada con ${devolucion.dias_retraso} días de retraso`);
     }
 });
 
